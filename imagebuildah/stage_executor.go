@@ -30,6 +30,7 @@ import (
 	"go.podman.io/buildah/internal"
 	"go.podman.io/buildah/internal/metadata"
 	"go.podman.io/buildah/internal/output"
+	"go.podman.io/buildah/internal/parsemount"
 	"go.podman.io/buildah/internal/sanitize"
 	"go.podman.io/buildah/internal/tmpdir"
 	"go.podman.io/buildah/internal/urlsource"
@@ -2062,8 +2063,8 @@ func (s *stageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 			mountOptionFrom := ""
 			mountCheckSum := ""
 			if strings.HasPrefix(flag, "--mount=") {
-				mountInfo := getFromAndSourceKeysFromMountFlag(flag)
-				if mountInfo.Type != "bind" {
+				mountInfo := parsemount.ParseFlag(flag, define.TypeBind)
+				if mountInfo.Type != define.TypeBind {
 					continue
 				}
 				mountOptionSource = mountInfo.Source

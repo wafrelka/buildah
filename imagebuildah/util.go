@@ -5,44 +5,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	digest "github.com/opencontainers/go-digest"
 	"go.podman.io/buildah"
-	"go.podman.io/buildah/define"
 )
-
-type mountInfo struct {
-	Type   string
-	Source string
-	From   string
-}
-
-// Consumes mount flag in format of `--mount=type=bind,src=/path,from=image` and
-// return mountInfo with values. Source and From are empty if not present in the
-// option; Type defaults to "bind" if not present, matching the default used
-// when the mount is actually set up (see internal/volumes.getMounts).
-func getFromAndSourceKeysFromMountFlag(mount string) mountInfo {
-	tokens := strings.Split(strings.TrimPrefix(mount, "--mount="), ",")
-	source := ""
-	from := ""
-	mountType := define.TypeBind
-	for _, option := range tokens {
-		if optionSplit := strings.Split(option, "="); len(optionSplit) == 2 {
-			if optionSplit[0] == "src" || optionSplit[0] == "source" {
-				source = optionSplit[1]
-			}
-			if optionSplit[0] == "from" {
-				from = optionSplit[1]
-			}
-			if optionSplit[0] == "type" {
-				mountType = optionSplit[1]
-			}
-		}
-	}
-	return mountInfo{Source: source, From: from, Type: mountType}
-}
 
 // generatePathChecksum generates the SHA-256 checksum for a file or a directory.
 func generatePathChecksum(sourcePath string) (string, error) {

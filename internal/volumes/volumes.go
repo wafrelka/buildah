@@ -18,6 +18,7 @@ import (
 	"go.podman.io/buildah/copier"
 	"go.podman.io/buildah/define"
 	"go.podman.io/buildah/internal"
+	"go.podman.io/buildah/internal/parsemount"
 	internalParse "go.podman.io/buildah/internal/parsevolume"
 	"go.podman.io/buildah/internal/tmpdir"
 	internalUtil "go.podman.io/buildah/internal/util"
@@ -779,8 +780,6 @@ func GetVolumes(ctx *types.SystemContext, store storage.Store, mountLabel string
 // and then unlock the locks we returned (either using UnlockLockArray() or by
 // iterating over them and unlocking them).
 func getMounts(ctx *types.SystemContext, store storage.Store, mountLabel string, mounts []string, contextDir string, uidmap, gidmap []specs.LinuxIDMapping, workDir, tmpDir string) (map[string]specs.Mount, []string, []string, []string, []*lockfile.LockFile, error) {
-	// If `type` is not set default to "bind"
-	mountType := define.TypeBind
 	finalMounts := make(map[string]specs.Mount, len(mounts))
 	mountedImages := make([]string, 0, len(mounts))
 	intermediateMounts := make([]string, 0, len(mounts))
@@ -814,18 +813,12 @@ func getMounts(ctx *types.SystemContext, store storage.Store, mountLabel string,
 	errInvalidSyntax := errors.New("incorrect mount format: should be --mount type=<bind|tmpfs>,[src=<host-dir>,]target=<ctr-dir>[,options]")
 
 	for _, mount := range mounts {
-		tokens := strings.Split(mount, ",")
+		parsedMount := parsemount.Parse(mount, define.TypeBind)
+		tokens := parsedMount.Tokens
+		mountType := parsedMount.Type
+
 		if len(tokens) < 2 {
 			return nil, nil, nil, nil, nil, fmt.Errorf("%q: %w", mount, errInvalidSyntax)
-		}
-		for _, field := range tokens {
-			if strings.HasPrefix(field, "type=") {
-				kv := strings.Split(field, "=")
-				if len(kv) != 2 {
-					return nil, nil, nil, nil, nil, fmt.Errorf("%q: %w", mount, errInvalidSyntax)
-				}
-				mountType = kv[1]
-			}
 		}
 		switch mountType {
 		case define.TypeBind:

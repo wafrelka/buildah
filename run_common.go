@@ -34,6 +34,7 @@ import (
 	"go.podman.io/buildah/copier"
 	"go.podman.io/buildah/define"
 	"go.podman.io/buildah/internal"
+	"go.podman.io/buildah/internal/parsemount"
 	"go.podman.io/buildah/internal/tmpdir"
 	"go.podman.io/buildah/internal/volumes"
 	"go.podman.io/buildah/pkg/overlay"
@@ -1549,20 +1550,10 @@ func (b *Builder) runSetupRunMounts(bundlePath string, mounts []string, sources 
 	for _, mount := range mounts {
 		var bundleMountsDir string
 
-		tokens := strings.Split(mount, ",")
+		parsedMount := parsemount.Parse(mount, define.TypeBind)
+		tokens := parsedMount.Tokens
+		mountType := parsedMount.Type
 
-		// If `type` is not set default to TypeBind
-		mountType := define.TypeBind
-
-		for _, field := range tokens {
-			if strings.HasPrefix(field, "type=") {
-				kv := strings.Split(field, "=")
-				if len(kv) != 2 {
-					return nil, nil, errors.New("invalid mount type")
-				}
-				mountType = kv[1]
-			}
-		}
 		switch mountType {
 		case "secret":
 			mountOrEnvSpec, err := b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)

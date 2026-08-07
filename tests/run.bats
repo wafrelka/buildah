@@ -450,6 +450,8 @@ function configure_and_check_user() {
 	run_buildah from --quiet --pull=false $WITH_POLICY_JSON alpine
 	cid=$output
 	mkdir -p ${TEST_SCRATCH_DIR}/was:empty
+	mkdir -p ${TEST_SCRATCH_DIR}/implicit-bind
+	echo mounted > ${TEST_SCRATCH_DIR}/implicit-bind/content
 	# As a baseline, this should succeed.
 	run_buildah run --mount type=tmpfs,dst=/var/tmpfs-not-empty                                                      $cid touch /var/tmpfs-not-empty/testfile
 	# This should succeed, but the writes should effectively be discarded
@@ -471,6 +473,9 @@ function configure_and_check_user() {
 	if test -s ${TEST_SCRATCH_DIR}/was:empty/testfile ; then
 		die write to mounted type=bind was not discarded, ${TEST_SCRATCH_DIR}/was:empty/testfile was written to
 	fi
+	# A type omitted after an explicit tmpfs must still default to bind.
+	run_buildah run --mount type=tmpfs,dst=/var/tmpfs-not-empty --mount src=${TEST_SCRATCH_DIR}/implicit-bind,dst=/var/implicit-bind${zflag} $cid cat /var/implicit-bind/content
+	expect_output mounted
 }
 
 @test "run --mount=type=bind with from like buildkit" {
